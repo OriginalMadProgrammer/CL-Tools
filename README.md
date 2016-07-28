@@ -1,9 +1,16 @@
 # CL-Tools - Command Line tools for UNIX style shells. 
 
-## Available scripts
+Assorted command line tools in different languages.
 
-### pushd.pl
-Greatly extend push/pop, and even cd, command using perl script. The big wins are the ability to symbolically search the stack using path fragments as well as "rise" entries rather than rotating so popular directories rise to the top of the stack. 
+## pushd.pl
+Greatly extend the native push/pop, and even cd, commands of shells using a perl script.
+
+The big wins are:
+
+* The ability to symbolically search the stack using path fragments.
+* Ability to "rise" entries rather than rotating so popular directories rise to the top of the stack. 
+* The ability to preload directory stack during login.
+* Nifty cd features borrowed from other shells.
 
 This script shows its perl-4 herriatage. 
 
