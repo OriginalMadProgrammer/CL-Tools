@@ -1,8 +1,9 @@
+#!/usr/bin/perl
 #!/usr/local/bin/perl
 #
 #   "pushd.pl +Man | nroff -man | more" to get man page
 #
-# invokement (sh, ksh):
+# invokement (sh, ksh "rc" files):
 #    if [ "${PUSHD:-not defined;}" = "not defined;" ]; then
 #    #  Initialize stack (may set to a preset value)
 #	   #if "home" directory is symbolic link: chase down real home
@@ -69,7 +70,7 @@ $PUSHD =~ s/\s+$//;			#wipe trailing spaces (DOES HAPPEN)
 ## other useful stuff
 $HOME = $ENV{'HOME'};	#home dir name
 
-require "getopts.pl";
+use Getopt::Std;
 $opt_1 = 0;		#-1: dir is to list one directory-per-line
 $opt_c = 0;		#-c: running under csh shell. set by &Initialize to 
 ##			#    prefix for csh commands to indicate they are 
@@ -499,7 +500,7 @@ sub pushdPwd
 {
     local( $dir ) = shift @_;		#directory to go to
 
-    unless ( open( DIR, "cd $dir && pwd 2>&1 |" ) )
+    unless ( open( DIR, "cd $dir 2>&1 && pwd 2>&1 |" ) )
     {   #super duper problem: does not normally get here for "dir not found"
 	print STDERR "$MyName: CAN NOT SELECT \"$dir\": PIPE FAILURE $?\n";
 	return undef;
@@ -558,7 +559,7 @@ sub Initialize
 	exit 0;
     }
 
-    &Getopts( $getOptArg );		#call Getopts with appropriate args
+    getopts( $getOptArg );	#call classic Getopts with appropriate args
 
     $opt_L = 0 if $opt_P;	#-L is exclusive of -P (and vice versa)
     $opt_L = $opt_L ? " -L" : undef;	#make very nice values
