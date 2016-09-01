@@ -10,7 +10,9 @@ The big wins are:
 * The ability to symbolically search the stack using path fragments.
 * Ability to "rise" entries rather than rotating so popular directories rise to the top of the stack. 
 * The ability to preload directory stack during login.
-* Nifty cd features borrowed from other shells.
+* Child processes inherit parent's stack.
+* Nifty cd features borrowed from other shells, sometimes enhanced, now available to all shells. 
+* Ability to clean stack of duplicate, non-existant, and other problematic entries.
 
-This script shows its perl-4 herriatage. 
+Though now it requires perl-5, look within and you can see this script's perl-4 herriatage.
 

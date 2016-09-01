@@ -86,6 +86,7 @@ $opt_LP = undef;	#    becomes the L or P setting. undef if neither.
 			#	RESTRICTION: not for use within system() or
 			#	   open()s using pipes.
 $opt_p = 0;		#-p: set prompt to include directory name
+$opt_Q = 0;		#-Q: internal... test DirQuote
 $opt_r = 0;		#-r: reorder stack
 $opt_s = 0;		#-s: silence: do not print directory name
 $opt_S = 0;		#-S: sort stack (after any selection)
@@ -195,8 +196,9 @@ sub goPopd
 
     @Dirs = sort @Dirs if $opt_S;	#do any requested sorting
 
+    my $DirQuote = DirQuote( $Dir );
     print $STDSHELL 
-	    "${opt_c}cd$opt_LP ${Dir} $c", 
+	    "${opt_c}cd$opt_LP $DirQuote $c", 
 	    $opt_s ? "" : ( " && echo '" . &Tilde($Dir) . "' " ),
 	    "; ",
 	    &ShowStack( @Dirs ), 
@@ -227,10 +229,20 @@ sub goPushd
     {   #have an OLDPWD variable and it looks like we want to use it
 
     }
-    &Initialize( $Pd ? "pd" : "pushd", "cLPprsStxz" );
+    &Initialize( $Pd ? "pd" : "pushd", "cLPpQrsStxz" );
 
     @Dirs = &ReduceStack( @Dirs ) if $opt_x;
 
+    if ( $opt_Q )
+    {
+	my $n;
+	for ( $n = 0; $n < @ARGV; $n++ )
+	{
+	    my $q = DirQuote( $ARGV[$n] );
+	    printf( "|%-32s |%s|\n", $ARGV[$n]."|", $q);
+	}
+	exit 0;
+    }
     if ( @ARGV == 0 )
     {   #exchange the current directory with the top member of the stack
 	if ( @Dirs == 0 )
@@ -247,7 +259,8 @@ sub goPushd
 	@Dirs =				#do any requested sorting
 		    ( $Dirs[0], sort @Dirs[1 .. $#Dirs] ) if $opt_S;	
 
-	print $STDSHELL "${opt_c}cd$opt_LP $Dir $c && ", 
+	my $DirQuote = DirQuote( $Dir );
+	print $STDSHELL "${opt_c}cd$opt_LP $DirQuote $c && ", 
 		&ShowStack( $Pwd, @Dirs ),  $nextOLDPWD,
 		$opt_s ? "" : ( " && echo '" . &Tilde($Dir) . "'" ), "\n";
 	exit(0);
@@ -393,7 +406,8 @@ sub goPushd
 
     @Dirs = sort @Dirs if $opt_S;	#do requested sort
 
-    print $STDSHELL "${opt_c}cd$opt_LP $Dir $c && ", &ShowStack( @Dirs ), 
+    my $DirQuote = DirQuote( $Dir );
+    print $STDSHELL "${opt_c}cd$opt_LP $DirQuote $c && ", &ShowStack( @Dirs ), 
 		$nextOLDPWD,
 		$opt_s ? "" : ( " && echo '" . &Tilde($Dir) . "'" ), "\n";
 
@@ -500,7 +514,7 @@ sub pushdPwd
 {
     local( $dir ) = shift @_;		#directory to go to
 
-    unless ( open( DIR, "cd $dir 2>&1 && pwd 2>&1 |" ) )
+    unless ( open( DIR, "cd '$dir' 2>&1 && pwd 2>&1 |" ) )
     {   #super duper problem: does not normally get here for "dir not found"
 	print STDERR "$MyName: CAN NOT SELECT \"$dir\": PIPE FAILURE $?\n";
 	return undef;
@@ -509,12 +523,12 @@ sub pushdPwd
     local($_) = <DIR>;			#read directory name
     close(DIR);
     s/\s+$//;				#safe chop of terminal \n
-    if ( /\s/ )
-    {   #white space in path name implies error text
-	s/^sh: +//;		#strip off any "sh:" leader
-	print STDERR "$MyName: CAN NOT SELECT \"$dir\": $_\n";
-	return undef;
-    }
+#:    if ( /\s/ )
+#:    {   #white space in path name implies error text
+#:	s/^sh: +//;		#strip off any "sh:" leader
+#:	print STDERR "$MyName: CAN NOT SELECT \"$dir\": $_\n";
+#:	return undef;
+#:    }
 
     return $_;
 }
@@ -918,6 +932,48 @@ sub Tilde
     return $_;
 }
 
+
+########################################################################
+#
+#   DirQuote - quote directory in manner appropriate for shell
+#
+sub DirQuote
+{
+    my $dir = shift;
+
+    if ( $dir !~ m|^[-~.,=\w]*$| )
+    {   #has special character in it... or empty... need quotes, BUT
+    	# do NOT quote any leading ~\w*
+        if ( $dir !~ /'/ )
+	{   #no single quote easy peazy.... 
+	    $dir =~ s|^(\~\w+)?(.*)|$1'$2'|;
+	    1;
+	}
+	else
+	{   #embedded double quotes are more problematic
+		# consider this high-risk code, but best I
+		# can do due to nature of shells. If users
+		# request paths with double-quotes in it
+		# pushd is not the only place at risk of
+		# breaking.
+	    $dir =~ s{^(~[/\w]*)?(.*)}
+	    	     {  #lazy-man's way to quote for shells... ask shell!
+		       my $d = $1;		#user home dirs not quoted
+		       local $ENV{'DIR'} = $2;	#save in %ENV to avoid quote issues
+		       my $o = open( PIPEOUT, q{/bin/bash -c 'printf %q "$DIR"' | } );
+		       $o || die "QUOTE PIPE FAILED: $DIR: $?\n";
+		       my $q;
+		       my $n = sysread(PIPEOUT,$q,length($dir)*4);
+		       chomp $q;
+		       close PIPE;
+		       "$d$q"
+		     }e;
+	    1;
+	}
+    }
+
+    return $dir;
+}
 
 
 ## mark
