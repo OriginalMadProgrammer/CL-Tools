@@ -12,10 +12,10 @@
 #	PUSHD=""
 #	export PUSHD
 #     fi
-#    pushd() { eval `pushd.pl $*;`; }
-#    pd()    { eval `pushd.pl +Pd $*;`; }
-#    popd()  { eval `pushd.pl +Popd $*;`; }
-#    dirs()  { pushd.pl +Dirs $*; }
+#    pushd() { eval `pushd.pl "$@";`; }
+#    pd()    { eval `pushd.pl +Pd "$@";`; }
+#    popd()  { eval `pushd.pl +Popd "$@";`; }
+#    dirs()  { pushd.pl +Dirs "$@"; }
 #
 #  NOTE: this code goes back to the days of perl-4, before there was
 #  	OO, "my", or many other neat features. And for years after perl-5
@@ -260,7 +260,7 @@ sub goPushd
 		    ( $Dirs[0], sort @Dirs[1 .. $#Dirs] ) if $opt_S;	
 
 	my $DirQuote = DirQuote( $Dir );
-	print $STDSHELL "${opt_c}cd$opt_LP $DirQuote $c && ", 
+	print $STDSHELL "${opt_c}cd $opt_LP $DirQuote $c && ", 
 		&ShowStack( $Pwd, @Dirs ),  $nextOLDPWD,
 		$opt_s ? "" : ( " && echo '" . &Tilde($Dir) . "'" ), "\n";
 	exit(0);
@@ -946,7 +946,7 @@ sub DirQuote
     	# do NOT quote any leading ~\w*
         if ( $dir !~ /'/ )
 	{   #no single quote easy peazy.... 
-	    $dir =~ s|^(\~\w+)?(.*)|$1'$2'|;
+	    $dir =~ s|^(\~\w*/*)?(.*)|$1'$2'|;
 	    1;
 	}
 	else
